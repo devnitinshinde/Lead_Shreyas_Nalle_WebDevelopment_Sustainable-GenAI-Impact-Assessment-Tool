@@ -24,11 +24,13 @@ const menuLinks: Array<{
   { href: "/default", label: "Default", icon: GridIcon },
   { href: "/keys", label: "Keys", icon: KeyIcon },
   { href: "/projects", label: "Projects", icon: FolderIcon },
+  { href: "/charts-demo", label: "Charts Demo", icon: ChartBarsIcon },
   { href: "/reports", label: "Reports", icon: ReportIcon },
   { href: "/recommendations", label: "Recommendations", icon: SparkIcon },
   { href: "/settings", label: "Settings", icon: SettingsIcon },
   { href: "/onboarding", label: "On-boarding", icon: RocketIcon },
   { href: "/login", label: "Login", icon: LoginIcon },
+  { href: "/charts-demo", label: "Charts", icon: ChartBarsIcon },
 ];
 
 export default function DashboardPage() {
@@ -336,6 +338,14 @@ function LoginIcon({ className }: IconProps) {
   return (
     <svg viewBox="0 0 24 24" className={className} fill="currentColor">
       <path d="M10 3h9v18h-9v-2h7V5h-7V3ZM5.7 12l2.6 2.6-1.4 1.4L2 12l4.9-4 1.4 1.4L5.7 12Zm4.3-1h9v2h-9v-2Z" />
+    </svg>
+  );
+}
+
+function ChartBarsIcon({ className }: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} fill="currentColor">
+      <path d="M4 19h16v2H2V3h2v16Zm2-2h3V9H6v8Zm5 0h3V5h-3v12Zm5 0h3v-6h-3v6Z" />
     </svg>
   );
 }

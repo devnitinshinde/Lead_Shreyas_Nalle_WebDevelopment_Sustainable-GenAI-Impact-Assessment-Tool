@@ -53,6 +53,12 @@ export default function DefaultPage() {
             Reports
           </Link>
           <Link
+            href="/charts-demo"
+            className="rounded-lg border border-[color:var(--line)] px-4 py-2 text-sm text-[color:var(--foreground)]/90 hover:border-[color:var(--accent)] hover:text-white"
+          >
+            Charts Demo
+          </Link>
+          <Link
             href="/recommendations"
             className="rounded-lg border border-[color:var(--line)] px-4 py-2 text-sm text-[color:var(--foreground)]/90 hover:border-[color:var(--accent)] hover:text-white"
           >
