@@ -19,6 +19,7 @@ const menuLinks: Array<{
   { href: "/keys", label: "Keys", icon: KeyIcon },
   { href: "/projects", label: "Projects", icon: FolderIcon },
   { href: "/reports", label: "Reports", icon: ReportIcon },
+  { href: "/analytics", label: "Analytics", icon: ChartIcon },
   { href: "/recommendations", label: "Recommendations", icon: SparkIcon },
   { href: "/settings", label: "Settings", icon: SettingsIcon },
   { href: "/documentation", label: "Documentation", icon: DocumentIcon },
@@ -194,6 +195,16 @@ function DocumentIcon({ className }: IconProps) {
       <line x1="16" y1="13" x2="8" y2="13" />
       <line x1="16" y1="17" x2="8" y2="17" />
       <line x1="10" y1="9" x2="8" y2="9" />
+    </svg>
+  );
+}
+
+function ChartIcon({ className }: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <line x1="18" y1="20" x2="18" y2="10" />
+      <line x1="12" y1="20" x2="12" y2="4" />
+      <line x1="6" y1="20" x2="6" y2="14" />
     </svg>
   );
 }
