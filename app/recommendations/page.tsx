@@ -3,14 +3,6 @@
 import { useEffect, useState } from "react";
 import { TypewriterStream } from "@/components/typewriter-stream";
 
-type Recommendation = {
-  id: string;
-  type: "model" | "prompt" | "efficiency";
-  title: string;
-  summary: string;
-  expectedImpact: string;
-};
-
 type DemoApiResponse = {
   generatedAt: string;
   scenario: {
@@ -30,25 +22,22 @@ type DemoApiResponse = {
     longPromptRatio: number;
     stagingRatio: number;
   };
-  recommendations: Recommendation[];
-  aiLayer: {
-    enabled: boolean;
-    provider: string;
-    model: string;
-    note?: string;
-    executiveSummary: string;
-    bestEcoModel: {
-      name: string;
-      reason: string;
-      estimatedSavingsWh: number;
-    };
-    bestPromptStyle: {
-      name: string;
-      template: string;
-      reason: string;
-      estimatedTokenReductionPct: number;
-    };
-    actionPlan: string[];
+  dataset: {
+    models: Array<{
+      modelName: string;
+      provider: "openai" | "anthropic" | "google" | "meta";
+      whPer1kTokens: number;
+      maxContextTokens: number;
+    }>;
+    callLogs: Array<{
+      id: string;
+      projectName: string;
+      environment: "production" | "staging";
+      modelName: string;
+      promptTokens: number;
+      completionTokens: number;
+      timestamp: string;
+    }>;
   };
 };
 
@@ -66,6 +55,15 @@ type StreamEvent =
   | { type: "line"; text: string }
   | { type: "done" };
 
+const fallbackScenarios = [
+  { id: "baseline", name: "Practical Week", description: "Realistic week-long enterprise usage." },
+  { id: "staging-heavy", name: "Staging Heavy", description: "Elevated staging traffic." },
+  { id: "prompt-heavy", name: "Prompt Heavy", description: "Long-context prompt workload." },
+  { id: "eco-optimized", name: "Eco Optimized", description: "Low-Wh routing in place." },
+  { id: "cost-spike", name: "Cost Spike", description: "Temporary production surge." },
+  { id: "weekend-batch", name: "Weekend Batch", description: "Nightly weekend batch runs." },
+];
+
 export default function RecommendationsPage() {
   const [scenarioId, setScenarioId] = useState("baseline");
   const [data, setData] = useState<DemoApiResponse | null>(null);
@@ -79,6 +77,9 @@ export default function RecommendationsPage() {
 
   useEffect(() => {
     const load = async () => {
+      setLoading(true);
+      setError(null);
+
       try {
         const response = await fetch(`/api/recommendations/demo?scenario=${encodeURIComponent(scenarioId)}`, {
           cache: "no-store",
@@ -124,7 +125,7 @@ export default function RecommendationsPage() {
         }
 
         if (event.type === "line") {
-          setStreamText((current) => `${current}${event.text}\n\n`);
+          setStreamText((current) => `${current}${event.text}`);
           return;
         }
 
@@ -188,11 +189,11 @@ export default function RecommendationsPage() {
   }, [scenarioId]);
 
   return (
-    <div className="min-h-screen px-4 py-8 sm:px-8">
-      <div className="mx-auto w-full max-w-6xl rounded-3xl border border-[color:var(--line)] bg-[color:var(--surface)]/90 p-5 sm:p-7">
+    <div className="min-h-screen px-4 py-5 sm:px-6">
+      <div className="mx-auto w-full max-w-6xl rounded-2xl border border-[color:var(--line)] bg-[color:var(--surface)]/90 p-4 sm:p-5">
         <p className="text-xs uppercase tracking-[0.2em] text-[color:var(--muted)]">Recommendations</p>
-        <h1 className="mt-2 text-2xl font-semibold sm:text-3xl">Demo AI-Eco Recommendation Engine</h1>
-        <div className="mt-4 max-w-sm">
+        <h1 className="mt-1 text-xl font-semibold sm:text-2xl">Sample-Driven AI-Eco Recommendation Engine</h1>
+        <div className="mt-3 max-w-md">
           <label htmlFor="scenario-select" className="text-xs uppercase tracking-[0.16em] text-[color:var(--muted)]">
             Sample Dataset
           </label>
@@ -200,80 +201,109 @@ export default function RecommendationsPage() {
             id="scenario-select"
             value={scenarioId}
             onChange={(event) => setScenarioId(event.target.value)}
-            className="mt-2 w-full rounded-lg border border-[color:var(--line)] bg-[color:var(--surface-2)] px-3 py-2 text-sm outline-none focus:border-[color:var(--accent)]"
+            className="mt-1.5 w-full rounded-lg border border-[color:var(--line)] bg-[color:var(--surface-2)] px-3 py-1.5 text-sm outline-none focus:border-[color:var(--accent)]"
           >
-            {(data?.availableScenarios ?? [
-              { id: "baseline", name: "Baseline Mix", description: "Default scenario" },
-              { id: "staging-heavy", name: "Staging Heavy", description: "High staging usage" },
-              { id: "prompt-heavy", name: "Prompt Heavy", description: "Long-context prompts" },
-              { id: "eco-optimized", name: "Eco Optimized", description: "Mostly eco-friendly" },
-            ]).map((scenario) => (
+            {(data?.availableScenarios ?? fallbackScenarios).map((scenario) => (
               <option key={scenario.id} value={scenario.id}>
                 {scenario.name}
               </option>
             ))}
           </select>
-          {data ? <p className="mt-2 text-xs text-[color:var(--muted)]">{data.scenario.description}</p> : null}
+          {data ? <p className="mt-1.5 text-xs text-[color:var(--muted)]">{data.scenario.description}</p> : null}
         </div>
 
         {loading ? <AiLoadingPanel /> : null}
-        {error ? <p className="mt-4 text-sm text-red-400">{error}</p> : null}
+        {error ? <p className="mt-2 text-sm text-red-400">{error}</p> : null}
 
         {data ? (
-          <>
-            <section className="mt-5">
-              <div className="flex items-start gap-3">
-                <AiLogo className={`mt-0.5 h-6 w-6 text-[color:var(--accent)] ${streamLoading ? "animate-spin" : ""}`} />
+          <div className="mt-3 grid gap-3 lg:grid-cols-[minmax(0,360px)_minmax(0,1fr)]">
+            <section className="rounded-xl border border-[color:var(--line-soft)] bg-[color:var(--surface-2)]/65 p-3">
+              <div className="flex items-start gap-2.5">
+                <AiLogo className={`mt-0.5 h-5 w-5 text-[color:var(--accent)] ${streamLoading ? "animate-spin" : ""}`} />
                 <div className="min-w-0 flex-1">
                   <p className="text-xs uppercase tracking-[0.16em] text-[color:var(--muted)]">AI Assistant</p>
-                  <p className="mt-1 text-xs text-[color:var(--muted)]">
-                    {streamMeta ? `${streamMeta.provider}:${streamMeta.model}` : "connecting..."}
+                  <p className="mt-0.5 text-xs text-[color:var(--muted)]">
+                    {streamMeta
+                      ? streamMeta.provider === "sample-data"
+                        ? "Sample-data AI mode"
+                        : streamMeta.provider === "fallback"
+                          ? "Simulated AI mode"
+                          : `${streamMeta.provider}:${streamMeta.model}`
+                      : "connecting..."}
                   </p>
-                  {streamMeta?.note ? <p className="mt-2 text-xs text-amber-300">{streamMeta.note}</p> : null}
+                  {streamMeta?.note ? <p className="mt-1 text-xs text-cyan-300">{streamMeta.note}</p> : null}
 
-                  <div className="mt-3 text-sm leading-relaxed text-[color:var(--foreground)]/95">
+                  <div className="mt-1.5 text-xs leading-snug text-sky-100/90">
                     <TypewriterStream
                       text={streamText}
-                      speed={[14, 30]}
-                      className="whitespace-pre-wrap"
-                      cursorClassName="text-[color:var(--accent)]"
+                      speed={[10, 18]}
+                      className="whitespace-normal"
+                      cursorClassName="text-sky-300"
+                      highlightTerms={[
+                        "Best eco option",
+                        "Best eco options",
+                        "estimated savings",
+                        "Best prompt style",
+                        "token reduction",
+                        "Next steps",
+                        "Model basis",
+                      ]}
+                      highlightClassName="text-cyan-300 font-semibold"
                     />
                   </div>
 
                   {streamLoading ? (
-                    <p className="mt-3 inline-flex items-center gap-2 text-xs text-[color:var(--muted)]">
+                    <p className="mt-1.5 inline-flex items-center gap-2 text-xs text-[color:var(--muted)]">
                       <span className="h-2 w-2 animate-pulse rounded-full bg-[color:var(--accent)]" />
-                      generating next line...
+                      generating...
                     </p>
                   ) : null}
 
-                  {streamError ? <p className="mt-2 text-sm text-red-400">{streamError}</p> : null}
+                  {streamError ? <p className="mt-1.5 text-xs text-red-400">{streamError}</p> : null}
                 </div>
               </div>
             </section>
 
-            <div className="mt-6 border-t border-[color:var(--line-soft)]" />
+            <div className="space-y-3">
+              <section className="rounded-lg border border-[color:var(--line-soft)] bg-[color:var(--surface-2)]/60 px-3 py-2">
+                <p className="text-[11px] uppercase tracking-[0.14em] text-[color:var(--muted)]">Sample Data</p>
+                <div className="mt-1.5 flex flex-wrap gap-1.5">
+                  {data.dataset.models.map((model) => (
+                    <span
+                      key={model.modelName}
+                      className="rounded-md border border-[color:var(--line)] bg-[color:var(--surface)]/80 px-2 py-0.5 text-[11px] text-cyan-200"
+                    >
+                      {model.modelName} | {model.whPer1kTokens}Wh/1k
+                    </span>
+                  ))}
+                </div>
+                <div className="mt-2 space-y-1 text-[11px] text-[color:var(--foreground)]/85">
+                  {data.dataset.callLogs.slice(0, 8).map((log) => (
+                    <p key={log.id}>
+                      <span className="text-[color:var(--muted)]">{log.projectName}</span>{" "}
+                      <span className={log.environment === "production" ? "text-emerald-300" : "text-amber-300"}>
+                        {log.environment}
+                      </span>{" "}
+                      <span className="text-sky-200">{log.modelName}</span>{" "}
+                      {log.promptTokens + log.completionTokens} tokens
+                    </p>
+                  ))}
+                  {data.dataset.callLogs.length > 8 ? (
+                    <p className="text-[color:var(--muted)]">+{data.dataset.callLogs.length - 8} more logs</p>
+                  ) : null}
+                </div>
+              </section>
 
-            <div className="mt-5 grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-4">
-              <Metric title="Total calls" value={String(data.insights.totalCalls)} />
-              <Metric title="Total tokens" value={data.insights.totalTokens.toLocaleString()} />
-              <Metric title="Energy (Wh)" value={String(data.insights.totalWh)} />
-              <Metric title="Long prompt ratio" value={`${data.insights.longPromptRatio}%`} />
+              <div className="grid gap-2 text-sm grid-cols-2 lg:grid-cols-4">
+                <Metric title="Total calls" value={String(data.insights.totalCalls)} />
+                <Metric title="Total tokens" value={data.insights.totalTokens.toLocaleString()} />
+                <Metric title="Energy (Wh)" value={String(data.insights.totalWh)} />
+                <Metric title="Long prompt ratio" value={`${data.insights.longPromptRatio}%`} />
+              </div>
+
+              <p className="text-xs text-[color:var(--muted)]">Generated: {new Date(data.generatedAt).toLocaleString()}</p>
             </div>
-
-            <div className="mt-5 space-y-3 text-sm text-[color:var(--foreground)]/90">
-              {data.recommendations.map((item) => (
-                <article key={item.id} className="rounded-xl border border-[color:var(--line-soft)] bg-[color:var(--surface-2)]/80 p-4">
-                  <p className="text-xs uppercase tracking-[0.16em] text-[color:var(--muted)]">{item.type}</p>
-                  <h2 className="mt-1 text-base font-semibold">{item.title}</h2>
-                  <p className="mt-2">{item.summary}</p>
-                  <p className="mt-2 text-[color:var(--muted)]">{item.expectedImpact}</p>
-                </article>
-              ))}
-            </div>
-
-            <p className="mt-4 text-xs text-[color:var(--muted)]">Generated: {new Date(data.generatedAt).toLocaleString()}</p>
-          </>
+          </div>
         ) : null}
       </div>
     </div>
@@ -287,9 +317,9 @@ type MetricProps = {
 
 function Metric({ title, value }: MetricProps) {
   return (
-    <article className="rounded-xl border border-[color:var(--line-soft)] bg-[color:var(--surface-2)]/80 p-4">
+    <article className="rounded-lg border border-[color:var(--line-soft)] bg-[color:var(--surface-2)]/70 px-3 py-2">
       <p className="text-xs uppercase tracking-[0.15em] text-[color:var(--muted)]">{title}</p>
-      <p className="mt-1 text-lg font-semibold">{value}</p>
+      <p className="mt-0.5 text-base font-semibold">{value}</p>
     </article>
   );
 }
@@ -300,8 +330,8 @@ function AiLoadingPanel() {
       <div className="flex items-center gap-3">
         <AiLogo className="h-7 w-7 animate-spin text-[color:var(--accent)]" />
         <div>
-          <p className="text-sm font-medium">AI is analyzing your usage data...</p>
-          <p className="text-xs text-[color:var(--muted)]">Preparing live recommendation stream</p>
+          <p className="text-sm font-medium">Analyzing sample scenario...</p>
+          <p className="text-xs text-[color:var(--muted)]">Preparing compact AI summary stream</p>
         </div>
       </div>
     </section>

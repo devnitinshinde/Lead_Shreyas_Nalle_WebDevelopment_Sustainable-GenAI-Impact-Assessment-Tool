@@ -10,7 +10,13 @@ type TypewriterStreamProps = {
   speed?: TypingSpeed;
   className?: string;
   cursorClassName?: string;
+  highlightTerms?: string[];
+  highlightClassName?: string;
 };
+
+function escapeRegExp(text: string): string {
+  return text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
 
 function getDelay(speed: TypingSpeed): number {
   if (typeof speed === "number") {
@@ -31,6 +37,8 @@ export function TypewriterStream({
   speed = [16, 36],
   className,
   cursorClassName,
+  highlightTerms,
+  highlightClassName = "text-emerald-300 font-medium",
 }: TypewriterStreamProps) {
   const source = useMemo(() => {
     if (typeof text === "string") {
@@ -100,9 +108,46 @@ export function TypewriterStream({
     };
   }, []);
 
+  const renderedText = useMemo(() => {
+    if (!highlightTerms || highlightTerms.length === 0) {
+      return <span>{displayed}</span>;
+    }
+
+    const cleanTerms = highlightTerms
+      .map((term) => term.trim())
+      .filter(Boolean)
+      .sort((a, b) => b.length - a.length);
+
+    if (cleanTerms.length === 0) {
+      return <span>{displayed}</span>;
+    }
+
+    const regex = new RegExp(`(${cleanTerms.map(escapeRegExp).join("|")})`, "gi");
+    const parts = displayed.split(regex);
+
+    return (
+      <>
+        {parts.map((part, index) => {
+          if (!part) {
+            return null;
+          }
+
+          const isMatch = cleanTerms.some((term) => term.toLowerCase() === part.toLowerCase());
+          return isMatch ? (
+            <span key={`h-${index}`} className={highlightClassName}>
+              {part}
+            </span>
+          ) : (
+            <span key={`t-${index}`}>{part}</span>
+          );
+        })}
+      </>
+    );
+  }, [displayed, highlightClassName, highlightTerms]);
+
   return (
     <p className={className}>
-      <span>{displayed}</span>
+      {renderedText}
       <span className={`typing-cursor ${cursorClassName ?? ""}`} aria-hidden="true">
         |
       </span>

@@ -5,26 +5,39 @@ function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-function buildAiLines(aiLayer: {
+function buildAiSummaryParagraph(aiLayer: {
   executiveSummary: string;
   bestEcoModel: { name: string; estimatedSavingsWh: number; reason: string };
   bestPromptStyle: { name: string; estimatedTokenReductionPct: number; reason: string };
   actionPlan: string[];
-}) {
-  const lines: string[] = [];
-  lines.push(`AI Summary: ${aiLayer.executiveSummary}`);
-  lines.push(
-    `Best eco model: ${aiLayer.bestEcoModel.name} (estimated savings ${aiLayer.bestEcoModel.estimatedSavingsWh} Wh).`
-  );
-  lines.push(`Why model: ${aiLayer.bestEcoModel.reason}`);
-  lines.push(
-    `Best prompt style: ${aiLayer.bestPromptStyle.name} (${aiLayer.bestPromptStyle.estimatedTokenReductionPct}% token reduction).`
-  );
-  lines.push(`Why prompt: ${aiLayer.bestPromptStyle.reason}`);
-  for (const step of aiLayer.actionPlan) {
-    lines.push(`Action: ${step}`);
+}, insights: {
+  totalCalls: number;
+  totalTokens: number;
+  totalWh: number;
+  longPromptRatio: number;
+  stagingRatio: number;
+}, scenarioName: string) {
+  const actions = aiLayer.actionPlan
+    .slice(0, 3)
+    .map((step) => step.replace(/[.]+$/g, ""))
+    .join("; ");
+  return [
+    `Scenario ${scenarioName}: sample data shows ${insights.totalCalls} calls, ${insights.totalTokens} tokens, and ${insights.totalWh} Wh total energy.`,
+    `Long-context prompts are ${insights.longPromptRatio}% and staging traffic is ${insights.stagingRatio}%.`,
+    `Best eco options are ${aiLayer.bestEcoModel.name} with estimated savings of ${aiLayer.bestEcoModel.estimatedSavingsWh} Wh on this sample.`,
+    `Model basis: ${aiLayer.bestEcoModel.reason}`,
+    `Best prompt style is ${aiLayer.bestPromptStyle.name} with ~${aiLayer.bestPromptStyle.estimatedTokenReductionPct}% token reduction for this scenario.`,
+    `Reason: ${aiLayer.bestPromptStyle.reason}`,
+    `Next steps: ${actions}.`,
+  ].join(" ");
+}
+
+function chunkText(text: string, chunkSize: number): string[] {
+  const chunks: string[] = [];
+  for (let index = 0; index < text.length; index += chunkSize) {
+    chunks.push(text.slice(index, index + chunkSize));
   }
-  return lines;
+  return chunks;
 }
 
 export async function GET(request: Request) {
@@ -49,8 +62,11 @@ export async function GET(request: Request) {
           models: basePayload.dataset.models,
           insights: basePayload.insights,
           recommendations: basePayload.recommendations,
+        }, {
+          strictSample: true,
         });
-        const lines = buildAiLines(aiLayer);
+        const paragraph = buildAiSummaryParagraph(aiLayer, basePayload.insights, basePayload.scenario.name);
+        const chunks = chunkText(paragraph, 70);
 
         push({
           type: "meta",
@@ -61,15 +77,21 @@ export async function GET(request: Request) {
           scenario: basePayload.scenario.id,
         });
 
-        for (const line of lines) {
-          push({ type: "line", text: line });
-          await sleep(220);
+        for (const chunk of chunks) {
+          push({ type: "line", text: chunk });
+          await sleep(90);
         }
 
         push({ type: "done" });
       } catch {
-        push({ type: "meta", enabled: false, provider: "fallback", model: "rule-template", note: "Stream failed, fallback stream ended." });
-        push({ type: "line", text: "AI stream failed. Please retry." });
+        push({
+          type: "meta",
+          enabled: false,
+          provider: "fallback",
+          model: "summary-template",
+          note: "Could not stream AI result right now, showing simulated AI summary.",
+        });
+        push({ type: "line", text: "AI stream failed. Please retry after a moment." });
         push({ type: "done" });
       } finally {
         controller.close();

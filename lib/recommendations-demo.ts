@@ -79,23 +79,53 @@ function buildInsights(logs: DemoCallLog[], models: DemoModel[]): OrgInsights {
 
 function buildModelRecommendation(insights: OrgInsights, models: DemoModel[]): Recommendation {
   const topEnergyModel = insights.modelUsage[0];
-  const greenest = [...models].sort((a, b) => a.whPer1kTokens - b.whPer1kTokens)[0];
   const topModelDefinition = models.find((m) => m.modelName === topEnergyModel?.modelName);
 
-  const baseline = topEnergyModel && topModelDefinition
-    ? toWh(topEnergyModel.totalTokens, topModelDefinition.whPer1kTokens)
-    : 0;
-  const greener = topEnergyModel
-    ? toWh(topEnergyModel.totalTokens, greenest.whPer1kTokens)
-    : 0;
-  const savedWh = Math.max(0, baseline - greener);
+  const candidateTargets = models
+    .filter((model) => model.modelName !== topEnergyModel?.modelName)
+    .map((model) => {
+      const baselineWh = topEnergyModel && topModelDefinition
+        ? toWh(topEnergyModel.totalTokens, topModelDefinition.whPer1kTokens)
+        : 0;
+      const candidateWh = topEnergyModel ? toWh(topEnergyModel.totalTokens, model.whPer1kTokens) : 0;
+      const estimatedSavingsWh = Math.max(0, baselineWh - candidateWh);
+
+      return {
+        model,
+        estimatedSavingsWh,
+      };
+    })
+    .sort((a, b) => b.estimatedSavingsWh - a.estimatedSavingsWh);
+
+  const maxSavings = candidateTargets[0]?.estimatedSavingsWh ?? 0;
+  const shortlist = candidateTargets.filter((item) =>
+    maxSavings > 0 ? item.estimatedSavingsWh >= maxSavings * 0.75 : true
+  );
+
+  const providerBalanced = new Map<string, (typeof candidateTargets)[number]>();
+  for (const item of shortlist) {
+    if (!providerBalanced.has(item.model.provider)) {
+      providerBalanced.set(item.model.provider, item);
+    }
+  }
+
+  const topOptions = Array.from(providerBalanced.values()).slice(0, 3);
+  if (topOptions.length === 0 && candidateTargets[0]) {
+    topOptions.push(candidateTargets[0]);
+  }
+
+  const targetLabel = topOptions.length
+    ? topOptions.map((item) => `${item.model.modelName} (${item.model.provider})`).join(", ")
+    : "a lower-Wh alternative";
+
+  const expectedSavings = topOptions[0]?.estimatedSavingsWh ?? 0;
 
   return {
     id: "rec-model-switch",
     type: "model",
-    title: `Switch heavy workflows to ${greenest.modelName}`,
-    summary: `Your highest energy usage comes from ${topEnergyModel?.modelName ?? "high-power models"}. For similar workloads, migrating a major share of calls to ${greenest.modelName} reduces energy per 1k tokens from ${topModelDefinition?.whPer1kTokens ?? "N/A"} Wh to ${greenest.whPer1kTokens} Wh.`,
-    expectedImpact: `Estimated savings on current heavy traffic: ${savedWh.toFixed(2)} Wh over this sample window.`,
+    title: "Shift heavy workflows to lower-Wh model set",
+    summary: `Highest energy usage comes from ${topEnergyModel?.modelName ?? "high-power models"}. Based on provider-neutral Wh analysis for this sample, top eco candidates are ${targetLabel}. Current heavy path runs at ${topModelDefinition?.whPer1kTokens ?? "N/A"} Wh/1k tokens.`,
+    expectedImpact: `Estimated savings on current heavy traffic: ${expectedSavings.toFixed(2)} Wh over this sample window.`,
   };
 }
 

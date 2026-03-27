@@ -1,19 +1,16 @@
 import { NextResponse } from "next/server";
 import { generateDemoRecommendations } from "@/lib/recommendations-demo";
-import { generateAiLayer } from "@/lib/recommendations-ai";
 
 export async function GET(request: Request) {
-  const url = new URL(request.url);
-  const scenarioId = url.searchParams.get("scenario") ?? undefined;
-  const basePayload = generateDemoRecommendations(scenarioId);
-  const aiLayer = await generateAiLayer({
-    models: basePayload.dataset.models,
-    insights: basePayload.insights,
-    recommendations: basePayload.recommendations,
-  });
-
-  return NextResponse.json({
-    ...basePayload,
-    aiLayer,
-  });
+  try {
+    const url = new URL(request.url);
+    const scenarioId = url.searchParams.get("scenario") ?? undefined;
+    const basePayload = generateDemoRecommendations(scenarioId);
+    return NextResponse.json(basePayload);
+  } catch {
+    return NextResponse.json(
+      { error: "Failed to build recommendation demo response." },
+      { status: 500 }
+    );
+  }
 }
