@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+export default function Page() {
   return (
     <div className="min-h-screen px-4 pb-10 pt-6 sm:px-8">
       <div className="mx-auto flex w-full max-w-7xl flex-col gap-10">

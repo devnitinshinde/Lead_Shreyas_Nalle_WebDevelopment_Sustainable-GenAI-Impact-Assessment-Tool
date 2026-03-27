@@ -2,46 +2,40 @@
 
 @theme {
   --font-sans: "Poppins", var(--font-geist-sans), sans-serif;
-  --font-mono: var(--font-geist-mono);
+  --font-mono: var(--font-jetbrains-mono), monospace;
   
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --color-primary: var(--primary);
-  --color-primary-foreground: var(--primary-foreground);
-  --color-card: var(--card);
-  --color-card-foreground: var(--card-foreground);
-  --color-border: var(--border);
-  --color-input: var(--input);
-  --color-ring: var(--ring);
+  --color-background: #050505;
+  --color-foreground: #f5f5f5;
+  --color-muted: #a1a1aa;
+  --color-surface: #0f0f0f;
+  --color-surface-2: #171717;
+  --color-line: #27272a;
+  --color-line-soft: #18181b;
+  
+  --color-accent: #10b981;
+  --color-accent-2: #34d399;
+  --color-brand-blue: #3b82f6;
+  --color-brand-purple: #8b5cf6;
+  --color-brand-amber: #f59e0b;
 }
 
 :root {
   --background: #050505;
-  --foreground: #f5f5f5;
-  --muted: #a3a3a3;
-  --surface: #0f0f0f;
-  --surface-2: #171717;
-  --line: #2f2f2f;
-  --line-soft: #242424;
-  --accent: #d4d4d8;
-  --accent-2: #f4f4f5;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-poppins);
-  --font-mono: var(--font-jetbrains-mono);
+  --accent: #10b981;
+  --accent-2: #34d399;
+  --font-poppins: "Poppins", sans-serif;
 }
 
 body {
   background:
-    radial-gradient(circle at 8% 8%, #171717 0%, rgba(23, 23, 23, 0) 42%),
-    radial-gradient(circle at 92% 5%, #101010 0%, rgba(16, 16, 16, 0) 40%),
-    radial-gradient(circle at 85% 90%, #141414 0%, rgba(20, 20, 20, 0) 45%),
+    radial-gradient(circle at 0% 0%, #171717 0%, rgba(23, 23, 23, 0) 35%),
+    radial-gradient(circle at 100% 0%, #101010 0%, rgba(16, 16, 16, 0) 35%),
+    radial-gradient(circle at 50% 100%, #0d0d0d 0%, rgba(13, 13, 13, 0) 50%),
     var(--background);
   color: var(--foreground);
   font-family: var(--font-poppins), "Segoe UI", sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 * {
@@ -50,10 +44,59 @@ body {
 
 a,
 button {
-  transition: all 180ms ease;
+  transition: all 250ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 ::selection {
   background-color: #d4d4d8;
   color: #09090b;
 }
+
+/* Premium Utility Classes */
+.glass {
+  background: rgba(15, 15, 15, 0.65);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.premium-border {
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 0 1px 0 rgba(255, 255, 255, 0.1) inset;
+}
+
+.premium-card {
+  background: linear-gradient(145deg, #121212 0%, #0a0a0a 100%);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.text-gradient {
+  background: linear-gradient(to bottom right, #ffffff 0%, var(--accent) 50%, #a1a1aa 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.glass-accent {
+  background: rgba(16, 185, 129, 0.03);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(16, 185, 129, 0.1);
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #050505;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #2f2f2f;
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #3f3f3f;
+}
+

@@ -2,25 +2,22 @@ export const AUTH_COOKIE = "zion_auth";
 export const ONBOARDED_COOKIE = "zion_onboarded";
 
 const SESSION_TTL_SECONDS = 60 * 60 * 24 * 7;
-const USER_STORAGE_KEY = "blissful_turtle_user";
 const ONBOARDING_STORAGE_KEY = "blissful_turtle_onboarding";
 
 export type OrganizationSize = "1-10" | "11-50" | "51-200" | "200+";
 export type Provider = "OpenAI" | "Anthropic" | "Google" | "Azure" | "Other";
 
-export type RegistrationDraft = {
+export type UserProfile = {
+  uid: string;
   fullName: string;
   workEmail: string;
-  password: string;
   organizationName: string;
   organizationSize: OrganizationSize;
   industry: string;
   countryRegion: string;
   intendedProviders: Provider[];
-};
-
-export type RegisteredUser = RegistrationDraft & {
   onboarded: boolean;
+  createdAt: any;
 };
 
 export type OnboardingState = {
@@ -35,7 +32,6 @@ function setCookie(name: string, value: string, maxAge: number): void {
   if (typeof document === "undefined") {
     return;
   }
-
   document.cookie = `${name}=${encodeURIComponent(value)}; path=/; max-age=${maxAge}; samesite=lax`;
 }
 
@@ -43,12 +39,10 @@ function getCookie(name: string): string | null {
   if (typeof document === "undefined") {
     return null;
   }
-
   const cookie = document.cookie
     .split(";")
     .map((entry) => entry.trim())
     .find((entry) => entry.startsWith(`${name}=`));
-
   return cookie ? decodeURIComponent(cookie.split("=")[1] ?? "") : null;
 }
 
@@ -70,80 +64,20 @@ export function isOnboarded(): boolean {
   return getCookie(ONBOARDED_COOKIE) === "1";
 }
 
-export function saveRegisteredUser(draft: RegistrationDraft): RegisteredUser {
-  const user: RegisteredUser = {
-    ...draft,
-    workEmail: draft.workEmail.trim().toLowerCase(),
-    onboarded: false,
-  };
-
-  if (typeof localStorage === "undefined") {
-    return user;
-  }
-
-  localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(user));
-  return user;
-}
-
-export function getRegisteredUser(): RegisteredUser | null {
-  if (typeof localStorage === "undefined") {
-    return null;
-  }
-
-  const raw = localStorage.getItem(USER_STORAGE_KEY);
-  if (!raw) {
-    return null;
-  }
-
-  try {
-    return JSON.parse(raw) as RegisteredUser;
-  } catch {
-    return null;
-  }
-}
-
 export function saveOnboardingState(state: OnboardingState): void {
-  if (typeof localStorage === "undefined") {
-    return;
-  }
-
+  if (typeof localStorage === "undefined") return;
   localStorage.setItem(ONBOARDING_STORAGE_KEY, JSON.stringify(state));
 }
 
 export function getOnboardingState(): OnboardingState | null {
-  if (typeof localStorage === "undefined") {
-    return null;
-  }
-
+  if (typeof localStorage === "undefined") return null;
   const raw = localStorage.getItem(ONBOARDING_STORAGE_KEY);
-  if (!raw) {
-    return null;
-  }
-
+  if (!raw) return null;
   try {
     return JSON.parse(raw) as OnboardingState;
   } catch {
     return null;
   }
-}
-
-export function setOnboarded(nextValue: boolean): void {
-  if (typeof localStorage === "undefined") {
-    return;
-  }
-
-  const user = getRegisteredUser();
-  if (!user) {
-    return;
-  }
-
-  const updatedUser: RegisteredUser = {
-    ...user,
-    onboarded: nextValue,
-  };
-
-  localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(updatedUser));
-  setSession(nextValue);
 }
 
 export function generateEcoTrackKey(): string {

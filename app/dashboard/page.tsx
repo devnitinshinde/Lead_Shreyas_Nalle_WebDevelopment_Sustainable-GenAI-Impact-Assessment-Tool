@@ -3,8 +3,14 @@
 import { useMemo } from "react";
 import { useRouter } from "next/navigation";
 
-import { clearSession, getOnboardingState, getRegisteredUser } from "@/lib/auth";
-import { useClientReady } from "@/lib/use-client-ready";
+import { 
+  clearSession, 
+  UserProfile 
+} from "@/lib/auth";
+import { auth, db } from "@/lib/firebase";
+import { onAuthStateChanged } from "firebase/auth";
+import { doc, getDoc, collection, query, where, getDocs, limit } from "firebase/firestore";
+import { useEffect, useState } from "react";
 
 type FeedRow = {
   model: string;
@@ -38,27 +44,55 @@ function buildFeed(projectName: string): FeedRow[] {
 
 export default function DashboardPage() {
   const router = useRouter();
-  const clientReady = useClientReady();
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  const [project, setProject] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
 
-  const user = useMemo(() => (clientReady ? getRegisteredUser() : null), [clientReady]);
-  const onboarding = useMemo(() => (clientReady ? getOnboardingState() : null), [clientReady]);
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        // 1. Fetch User Profile
+        const userDoc = await getDoc(doc(db, "users", user.uid));
+        if (userDoc.exists()) {
+          const profile = userDoc.data() as UserProfile;
+          setUserProfile(profile);
+
+          // 2. Fetch first project for this user
+          const q = query(
+            collection(db, "projects"), 
+            where("userId", "==", user.uid), 
+            limit(1)
+          );
+          const projectSnap = await getDocs(q);
+          if (!projectSnap.empty) {
+            setProject(projectSnap.docs[0].data());
+          }
+        }
+      } else {
+        router.push("/login");
+      }
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, [router]);
 
   const liveFeed = useMemo(
-    () => buildFeed(onboarding?.projectName || user?.organizationName || "Default Project"),
-    [onboarding?.projectName, user?.organizationName],
+    () => buildFeed(project?.projectName || userProfile?.organizationName || "Default Project"),
+    [project?.projectName, userProfile?.organizationName],
   );
 
   const totals = useMemo(() => {
     const windowWh = liveFeed.reduce((sum, row) => sum + row.wh, 0);
-    const modelBreakdown = liveFeed.reduce<Record<string, number>>((result, row) => {
-      result[row.model] = (result[row.model] ?? 0) + row.co2;
-      return result;
-    }, {});
-
     const monthlyCalls = 14000 + liveFeed.length * 190;
     const monthlyKwh = Number(((windowWh * 88) / 1000).toFixed(2));
     const monthlyCo2 = Number((monthlyKwh * 0.39).toFixed(2));
     const sustainabilityScore = Math.max(58, 100 - Math.round(monthlyCo2 / 9));
+
+    const modelBreakdown = liveFeed.reduce<Record<string, number>>((result, row) => {
+      result[row.model] = (result[row.model] ?? 0) + row.co2;
+      return result;
+    }, {});
 
     return {
       monthlyCalls,
@@ -75,16 +109,18 @@ export default function DashboardPage() {
 
   const daySeries = [2.1, 2.8, 3.2, 2.6, 3.7, 3.4, 4.1, 3.9, 4.3, 3.6];
 
-  const handleSignOut = () => {
+  const handleSignOut = async () => {
+    await auth.signOut();
     clearSession();
     router.push("/login");
   };
 
-  if (!clientReady) {
+  if (loading) {
     return (
-      <div className="min-h-screen px-4 py-10 sm:px-8">
-        <div className="mx-auto w-full max-w-2xl rounded-2xl border border-[color:var(--line)] bg-[color:var(--surface)] p-6">
-          <p className="text-sm text-[color:var(--muted)]">Loading dashboard...</p>
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-12 h-12 border-4 border-accent/20 border-t-accent rounded-full animate-spin" />
+          <p className="text-sm text-muted animate-pulse">Syncing telemetry data...</p>
         </div>
       </div>
     );
@@ -97,7 +133,7 @@ export default function DashboardPage() {
           <div>
             <p className="text-xs uppercase tracking-[0.2em] text-[color:var(--muted)]">Dashboard</p>
             <h1 className="mt-2 text-2xl font-semibold sm:text-3xl">
-              {user?.organizationName ?? "Organization"} sustainability overview
+              {userProfile?.organizationName ?? "Organization"} sustainability overview
             </h1>
             <p className="mt-2 text-sm text-[color:var(--muted)]">
               Data source: proxy logs and runtime inference telemetry.
@@ -165,7 +201,7 @@ export default function DashboardPage() {
                 }}
               />
               <ul className="space-y-1 text-xs text-[color:var(--muted)]">
-                <li>{onboarding?.projectName ?? "Core API"} - 57%</li>
+                <li>{project?.projectName ?? "Core API"} - 57%</li>
                 <li>Mobile assistant - 22%</li>
                 <li>Internal batch jobs - 21%</li>
               </ul>
