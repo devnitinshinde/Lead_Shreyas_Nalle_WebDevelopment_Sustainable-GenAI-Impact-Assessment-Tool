@@ -16,6 +16,22 @@ bun dev
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
+## AI Recommendation Demo
+
+The recommendation backend demo is available at:
+
+- `GET /api/recommendations/demo`
+- UI page: `/recommendations`
+
+By default, it runs in fallback mode (rule/template AI layer).
+To enable real GPT output with Vercel AI SDK, add this to `.env.local`:
+
+```bash
+OPENAI_API_KEY=your_openai_api_key
+# Optional override (default: gpt-4o-mini)
+AI_MODEL=gpt-4o-mini
+```
+
 You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.

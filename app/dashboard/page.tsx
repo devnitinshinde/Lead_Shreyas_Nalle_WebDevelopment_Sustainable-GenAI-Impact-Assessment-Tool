@@ -30,7 +30,7 @@ const menuLinks: Array<{
   { href: "/settings", label: "Settings", icon: SettingsIcon },
   { href: "/onboarding", label: "On-boarding", icon: RocketIcon },
   { href: "/login", label: "Login", icon: LoginIcon },
-  { href: "/charts-demo", label: "Charts", icon: ChartBarsIcon },
+  // { href: "/charts-demo", label: "Charts", icon: ChartBarsIcon },
 ];
 
 export default function DashboardPage() {
