@@ -21,7 +21,7 @@ export default function Home() {
               Sign in
             </Link>
             <Link
-              href="/register"
+              href="/signup"
               className="rounded-lg bg-[color:var(--accent)] px-4 py-2 font-medium text-black hover:bg-[color:var(--accent-2)]"
             >
               Create account
@@ -44,7 +44,7 @@ export default function Home() {
             </p>
             <div className="mt-7 flex flex-wrap gap-3">
               <Link
-                href="/register"
+                href="/signup"
                 className="rounded-xl bg-[color:var(--accent)] px-5 py-3 text-sm font-semibold text-black hover:bg-[color:var(--accent-2)]"
               >
                 Start registration
@@ -64,23 +64,23 @@ export default function Home() {
             </p>
             <div className="mt-4 space-y-3 text-sm text-[color:var(--foreground)]/85">
               <p className="rounded-xl border border-[color:var(--line-soft)] bg-[color:var(--surface-2)]/80 p-3">
-                `Registration` with full organization profile and provider checkboxes.
+                `Signup/Login` static screens based on SRS organisation admin flow.
               </p>
               <p className="rounded-xl border border-[color:var(--line-soft)] bg-[color:var(--surface-2)]/80 p-3">
-                `On-boarding` for API keys, EcoTrack key generation, and first project.
+                `On-boarding` static 4-step wizard (provider key, EcoTrack key, project, verification).
               </p>
               <p className="rounded-xl border border-[color:var(--line-soft)] bg-[color:var(--surface-2)]/80 p-3">
                 `Dashboard` with KPIs, chart sections, and a live API activity table.
               </p>
               <p className="rounded-xl border border-[color:var(--line-soft)] bg-[color:var(--surface-2)]/80 p-3">
-                `Auth flow` with protected routes and default redirects.
+                Added static SRS modules: `keys`, `projects`, `reports`, `recommendations`, `settings`.
               </p>
             </div>
           </article>
         </section>
 
         <section className="grid gap-4 lg:grid-cols-4">
-          {["Landing page", "Registration", "On-boarding", "Dashboard"].map((step, index) => (
+          {["Landing page", "Signup", "On-boarding", "Dashboard"].map((step, index) => (
             <article
               key={step}
               className="rounded-2xl border border-[color:var(--line)] bg-[color:var(--surface)]/75 p-4"
